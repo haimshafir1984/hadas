@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { addStock, createProduct, recordSale } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function InventoryPage() {
   const products = await prisma.product.findMany({
     orderBy: { name: "asc" }

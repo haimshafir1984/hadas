@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { createCustomer } from "./actions";
 import { CustomerBroadcast } from "@/components/customer-broadcast";
 
+export const dynamic = "force-dynamic";
+
 export default async function CustomersPage() {
   const customers = await prisma.customer.findMany({
     orderBy: { joinedAt: "desc" }
