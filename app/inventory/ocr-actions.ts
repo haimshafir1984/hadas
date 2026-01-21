@@ -1,8 +1,8 @@
 "use server";
 
-import OpenAI from "openai";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import Anthropic from "@anthropic-ai/sdk";
 
 export type InvoiceItem = {
   name: string;
@@ -35,36 +35,50 @@ export async function extractInvoiceItems(formData: FormData): Promise<OcrResult
     return { items: [], error: "לא נבחר קובץ." };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return { items: [], error: "מפתח OpenAI חסר בשרת." };
+    return { items: [], error: "מפתח Claude חסר בשרת." };
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const base64 = buffer.toString("base64");
-  const openai = new OpenAI({ apiKey });
+  const anthropic = new Anthropic({ apiKey });
+  const supportedMediaTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp"
+  ] as const;
+  const mediaType = supportedMediaTypes.includes(file.type as (typeof supportedMediaTypes)[number])
+    ? (file.type as (typeof supportedMediaTypes)[number])
+    : "image/png";
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+  const response = await anthropic.messages.create({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 1024,
     messages: [
-      { role: "system", content: "אתה מנתח חשבוניות בעברית." },
       {
         role: "user",
         content: [
-          { type: "text", text: ocrPrompt },
           {
-            type: "image_url",
-            image_url: {
-              url: `data:${file.type};base64,${base64}`
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: mediaType,
+              data: base64
             }
+          },
+          {
+            type: "text",
+            text: ocrPrompt
           }
         ]
       }
-    ],
-    temperature: 0.1
+    ]
   });
 
-  const content = response.choices[0]?.message?.content ?? "[]";
+  const contentBlock = response.content[0];
+  const content = contentBlock?.type === "text" ? contentBlock.text : "[]";
   const json = extractJsonArray(content);
 
   try {

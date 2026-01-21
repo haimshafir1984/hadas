@@ -6,19 +6,27 @@ import { isLowStock } from "@/lib/inventory";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [products, invoices, recentOut] = await Promise.all([
-    prisma.product.findMany(),
-    prisma.supplierInvoice.findMany(),
-    prisma.inventoryTransaction.findMany({
-      where: {
-        type: "OUT",
-        createdAt: {
-          gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
-        }
-      },
-      select: { productId: true }
-    })
-  ]);
+  let products = [];
+  let invoices = [];
+  let recentOut = [];
+
+  try {
+    [products, invoices, recentOut] = await Promise.all([
+      prisma.product.findMany(),
+      prisma.supplierInvoice.findMany(),
+      prisma.inventoryTransaction.findMany({
+        where: {
+          type: "OUT",
+          createdAt: {
+            gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+          }
+        },
+        select: { productId: true }
+      })
+    ]);
+  } catch {
+    // Build-time fallback when DB isn't writable/available
+  }
 
   const lowStockCount = products.filter((product) => isLowStock(product)).length;
   const recentOutSet = new Set(recentOut.map((entry) => entry.productId));
