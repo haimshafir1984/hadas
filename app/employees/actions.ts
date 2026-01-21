@@ -111,3 +111,68 @@ export async function setDailyTarget(formData: FormData) {
 
   revalidatePath("/employees");
 }
+
+export async function clockIn(formData: FormData) {
+  const employeeId = toNumber(formData.get("employeeId"));
+  if (!Number.isFinite(employeeId)) {
+    throw new Error("Invalid employee");
+  }
+
+  const existing = await prisma.timeEntry.findFirst({
+    where: {
+      employeeId,
+      clockOut: null
+    }
+  });
+
+  if (!existing) {
+    await prisma.timeEntry.create({
+      data: {
+        employeeId,
+        clockIn: new Date()
+      }
+    });
+  }
+
+  revalidatePath("/employees");
+}
+
+export async function clockOut(formData: FormData) {
+  const employeeId = toNumber(formData.get("employeeId"));
+  if (!Number.isFinite(employeeId)) {
+    throw new Error("Invalid employee");
+  }
+
+  const existing = await prisma.timeEntry.findFirst({
+    where: {
+      employeeId,
+      clockOut: null
+    }
+  });
+
+  if (existing) {
+    await prisma.timeEntry.update({
+      where: { id: existing.id },
+      data: { clockOut: new Date() }
+    });
+  }
+
+  revalidatePath("/employees");
+}
+
+export async function toggleDailyTask(formData: FormData) {
+  const taskId = toNumber(formData.get("taskId"));
+  if (!Number.isFinite(taskId)) {
+    throw new Error("Invalid task");
+  }
+
+  const task = await prisma.dailyTask.findUnique({ where: { id: taskId } });
+  if (!task) return;
+
+  await prisma.dailyTask.update({
+    where: { id: taskId },
+    data: { completed: !task.completed }
+  });
+
+  revalidatePath("/employees");
+}

@@ -8,7 +8,8 @@ import {
   Settings,
   PackageSearch,
   LayoutDashboard,
-  Truck
+  Truck,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/employees", label: "ניהול עובדים", icon: Users },
   { href: "/inventory", label: "ניהול מלאי", icon: PackageSearch },
   { href: "/suppliers", label: "ספקים", icon: Truck },
+  { href: "/finance", label: "תזרים מזומנים", icon: BarChart3 },
   { href: "/customers", label: "מועדון לקוחות", icon: Box },
   { href: "/settings", label: "הגדרות", icon: Settings }
 ];

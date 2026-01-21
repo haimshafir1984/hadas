@@ -11,14 +11,44 @@ import { SupplierInvoiceModal } from "@/components/supplier-invoice-modal";
 export const dynamic = "force-dynamic";
 
 export default async function SuppliersPage() {
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: "asc" }
+  const [suppliers, invoices, products, invoiceItems] = await Promise.all([
+    prisma.supplier.findMany({
+      orderBy: { name: "asc" }
+    }),
+    prisma.supplierInvoice.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { supplier: true }
+    }),
+    prisma.product.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true }
+    }),
+    prisma.supplierInvoiceItem.findMany({
+      orderBy: { createdAt: "desc" }
+    })
+  ]);
+
+  const latestCosts = new Map<string, number>();
+  const previousCosts = new Map<string, number>();
+
+  invoiceItems.forEach((item) => {
+    if (!latestCosts.has(item.productName)) {
+      latestCosts.set(item.productName, item.unitCost);
+      return;
+    }
+    if (!previousCosts.has(item.productName)) {
+      previousCosts.set(item.productName, item.unitCost);
+    }
   });
 
-  const invoices = await prisma.supplierInvoice.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { supplier: true }
-  });
+  const priceAlerts = Array.from(latestCosts.entries())
+    .map(([productName, latestCost]) => {
+      const previousCost = previousCosts.get(productName);
+      return previousCost && latestCost > previousCost
+        ? { productName, previousCost, latestCost }
+        : null;
+    })
+    .filter(Boolean) as Array<{ productName: string; previousCost: number; latestCost: number }>;
 
   return (
     <>
@@ -70,73 +100,99 @@ export default async function SuppliersPage() {
                     רישום חשבונית עם תשלומים עתידיים והעלאת תמונה.
                   </p>
                 </div>
-                <SupplierInvoiceModal suppliers={suppliers} action={logSupplierInvoice} />
+                <SupplierInvoiceModal
+                  suppliers={suppliers}
+                  products={products}
+                  action={logSupplierInvoice}
+                />
               </div>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="view">
-          <Card className="mx-auto max-w-6xl">
-            <h2 className="text-lg font-semibold text-slate-900">
-              חשבוניות אחרונות
-            </h2>
-            <div className="mt-4 overflow-x-auto">
-              <Table>
-                <thead className="border-b border-slate-200 text-left text-slate-500">
-                  <tr>
-                    <th className="py-2 pr-4">ספק</th>
-                    <th className="py-2 pr-4">תאריך חשבונית</th>
-                    <th className="py-2 pr-4">סכום</th>
-                    <th className="py-2 pr-4">תשלומים</th>
-                    <th className="py-2 pr-4">תשלומים קרובים</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((invoice) => {
-                    let dates: string[] = [];
-                    try {
-                      dates = JSON.parse(invoice.paymentDates || "[]") as string[];
-                    } catch {
-                      dates = [];
-                    }
-                    const paymentAmount =
-                      invoice.numberOfPayments > 0
-                        ? invoice.totalAmount / invoice.numberOfPayments
-                        : 0;
-                    return (
-                      <tr key={invoice.id} className="border-b border-slate-100 text-slate-700">
-                        <td className="py-2 pr-4 font-medium text-slate-900">
-                          {invoice.supplier.name}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {new Date(invoice.invoiceDate).toLocaleDateString("he-IL")}
-                        </td>
-                        <td className="py-2 pr-4">₪{invoice.totalAmount.toFixed(0)}</td>
-                        <td className="py-2 pr-4">{invoice.numberOfPayments}</td>
-                        <td className="py-2 pr-4">
-                          <ul className="space-y-1 text-sm text-slate-600">
-                            {dates.map((date, index) => (
-                              <li key={`${invoice.id}-${index}`}>
-                                {new Date(date).toLocaleDateString("he-IL")} · ₪
-                                {paymentAmount.toFixed(0)}
-                              </li>
-                            ))}
-                            {dates.length === 0 && <li>לא הוגדרו תשלומים</li>}
-                          </ul>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-              {invoices.length === 0 && (
-                <p className="mt-4 text-sm text-slate-500">
-                  עדיין אין חשבוניות רשומות.
-                </p>
-              )}
-            </div>
-          </Card>
+          <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-3">
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900">
+                התראות שינוי מחיר
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                מוצרים שהמחיר שלהם עלה בין חשבוניות.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                {priceAlerts.length === 0 && <li>אין התראות מחיר.</li>}
+                {priceAlerts.map((alert) => (
+                  <li key={alert.productName} className="flex justify-between">
+                    <span className="text-slate-900">{alert.productName}</span>
+                    <span className="text-rose-600">
+                      ₪{alert.previousCost.toFixed(0)} → ₪{alert.latestCost.toFixed(0)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <h2 className="text-lg font-semibold text-slate-900">
+                חשבוניות אחרונות
+              </h2>
+              <div className="mt-4 overflow-x-auto">
+                <Table>
+                  <thead className="border-b border-slate-200 text-left text-slate-500">
+                    <tr>
+                      <th className="py-2 pr-4">ספק</th>
+                      <th className="py-2 pr-4">תאריך חשבונית</th>
+                      <th className="py-2 pr-4">סכום</th>
+                      <th className="py-2 pr-4">תשלומים</th>
+                      <th className="py-2 pr-4">תשלומים קרובים</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((invoice) => {
+                      let dates: string[] = [];
+                      try {
+                        dates = JSON.parse(invoice.paymentDates || "[]") as string[];
+                      } catch {
+                        dates = [];
+                      }
+                      const paymentAmount =
+                        invoice.numberOfPayments > 0
+                          ? invoice.totalAmount / invoice.numberOfPayments
+                          : 0;
+                      return (
+                        <tr key={invoice.id} className="border-b border-slate-100 text-slate-700">
+                          <td className="py-2 pr-4 font-medium text-slate-900">
+                            {invoice.supplier.name}
+                          </td>
+                          <td className="py-2 pr-4">
+                            {new Date(invoice.invoiceDate).toLocaleDateString("he-IL")}
+                          </td>
+                          <td className="py-2 pr-4">₪{invoice.totalAmount.toFixed(0)}</td>
+                          <td className="py-2 pr-4">{invoice.numberOfPayments}</td>
+                          <td className="py-2 pr-4">
+                            <ul className="space-y-1 text-sm text-slate-600">
+                              {dates.map((date, index) => (
+                                <li key={`${invoice.id}-${index}`}>
+                                  {new Date(date).toLocaleDateString("he-IL")} · ₪
+                                  {paymentAmount.toFixed(0)}
+                                </li>
+                              ))}
+                              {dates.length === 0 && <li>לא הוגדרו תשלומים</li>}
+                            </ul>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </Table>
+                {invoices.length === 0 && (
+                  <p className="mt-4 text-sm text-slate-500">
+                    עדיין אין חשבוניות רשומות.
+                  </p>
+                )}
+              </div>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </>

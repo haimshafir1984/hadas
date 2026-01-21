@@ -42,6 +42,7 @@ model Product {
   id          Int                     @id @default(autoincrement())
   name        String
   sku         String                  @unique
+  barcode     String?                 @unique
   department  String                  @default("לא משויך")
   model       String                  @default("לא משויך")
   size        String                  @default("כללי")
@@ -70,6 +71,8 @@ model Customer {
   name      String
   phone     String
   email     String   @unique
+  totalSpend Float   @default(0)
+  lastVisit  DateTime?
   birthDate DateTime?
   joinedAt  DateTime @default(now())
 }
@@ -102,4 +105,35 @@ model SupplierInvoice {
   paymentDates    String
   invoiceImage    String?
   createdAt       DateTime @default(now())
+
+  items           SupplierInvoiceItem[]
+}
+
+model SupplierInvoiceItem {
+  id                Int      @id @default(autoincrement())
+  supplierInvoice   SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id])
+  supplierInvoiceId Int
+  productId         Int?
+  productName       String
+  quantity          Int
+  unitCost          Float
+  createdAt         DateTime @default(now())
+}
+
+model TimeEntry {
+  id         Int      @id @default(autoincrement())
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId Int
+  clockIn    DateTime
+  clockOut   DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model DailyTask {
+  id         Int      @id @default(autoincrement())
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId Int
+  date       DateTime
+  label      String
+  completed  Boolean  @default(false)
 }

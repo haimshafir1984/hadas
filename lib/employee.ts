@@ -76,3 +76,23 @@ export async function getDailyTarget(date = new Date()) {
     }
   });
 }
+
+export async function getEmployeeDailyHours(employeeId: number, date = new Date()) {
+  const { start, end } = getDayRange(date);
+  const entries = await prisma.timeEntry.findMany({
+    where: {
+      employeeId,
+      clockIn: {
+        gte: start,
+        lt: end
+      }
+    }
+  });
+
+  const totalMs = entries.reduce((sum, entry) => {
+    const endTime = entry.clockOut ?? new Date();
+    return sum + (endTime.getTime() - entry.clockIn.getTime());
+  }, 0);
+
+  return Math.max(0, totalMs / (1000 * 60 * 60));
+}

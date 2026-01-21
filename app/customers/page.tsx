@@ -16,6 +16,20 @@ export default async function CustomersPage() {
     orderBy: { joinedAt: "desc" }
   });
 
+  const getTier = (customer: (typeof customers)[number]) => {
+    const lastVisit = customer.lastVisit ? new Date(customer.lastVisit) : null;
+    const daysSinceVisit = lastVisit
+      ? Math.floor((Date.now() - lastVisit.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    if (customer.totalSpend >= 2000 && (daysSinceVisit === null || daysSinceVisit <= 60)) {
+      return "VIP";
+    }
+    if (customer.totalSpend >= 500 && (daysSinceVisit === null || daysSinceVisit <= 90)) {
+      return "Active";
+    }
+    return "Inactive";
+  };
   const today = new Date();
   const birthdayCustomers = customers.filter((customer) => {
     if (!customer.birthDate) return false;
@@ -57,6 +71,16 @@ export default async function CustomersPage() {
               <div className="space-y-2">
                 <Label htmlFor="email">אימייל</Label>
                 <Input id="email" name="email" type="email" required />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="totalSpend">סך רכישות</Label>
+                  <Input id="totalSpend" name="totalSpend" type="number" min="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastVisit">ביקור אחרון</Label>
+                  <Input id="lastVisit" name="lastVisit" type="date" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthDate">תאריך לידה</Label>
@@ -116,6 +140,7 @@ export default async function CustomersPage() {
                       <th className="py-2 pr-4">שם</th>
                       <th className="py-2 pr-4">טלפון</th>
                       <th className="py-2 pr-4">אימייל</th>
+                      <th className="py-2 pr-4">דירוג</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -124,6 +149,7 @@ export default async function CustomersPage() {
                         <td className="py-2 pr-4 font-medium text-slate-900">{customer.name}</td>
                         <td className="py-2 pr-4">{customer.phone}</td>
                         <td className="py-2 pr-4">{customer.email}</td>
+                        <td className="py-2 pr-4">{getTier(customer)}</td>
                       </tr>
                     ))}
                   </tbody>

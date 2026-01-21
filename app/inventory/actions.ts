@@ -11,6 +11,7 @@ function toNumber(value: FormDataEntryValue | null) {
 export async function createProduct(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const sku = String(formData.get("sku") || "").trim();
+  const barcodeInput = String(formData.get("barcode") || "").trim();
   const departmentInput = String(formData.get("department") || "").trim();
   const modelInput = String(formData.get("model") || "").trim();
   const sizeInput = String(formData.get("size") || "").trim();
@@ -25,6 +26,7 @@ export async function createProduct(formData: FormData) {
   const department = departmentInput || "לא משויך";
   const model = modelInput || "לא משויך";
   const size = sizeInput || "כללי";
+  const barcode = barcodeInput || null;
 
   const initial = Number.isFinite(initialStock) && initialStock > 0 ? initialStock : 0;
 
@@ -38,6 +40,7 @@ export async function createProduct(formData: FormData) {
         department,
         model,
         size,
+        barcode,
         supplierId: normalizedSupplierId,
         maxStock,
         currentStock: initial

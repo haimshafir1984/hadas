@@ -4,9 +4,15 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
-import { getDailyTarget, getEmployeeDailySales, getEmployeeMonthlyStats } from "@/lib/employee";
-import { createEmployee, logSale, logShift, setDailyTarget } from "./actions";
+import {
+  getDailyTarget,
+  getEmployeeDailyHours,
+  getEmployeeDailySales,
+  getEmployeeMonthlyStats
+} from "@/lib/employee";
+import { createEmployee, logSale, logShift, setDailyTarget, clockIn, clockOut } from "./actions";
 import { Activity, TrendingUp, Trophy, Wallet } from "lucide-react";
+import { DailyTasks } from "@/components/daily-tasks";
 
 type EmployeesPageProps = {
   searchParams?: { employeeId?: string };
@@ -27,13 +33,75 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   const dailySales = selectedEmployee
     ? await getEmployeeDailySales(selectedEmployee.id)
     : null;
+  const dailyHours = selectedEmployee
+    ? await getEmployeeDailyHours(selectedEmployee.id)
+    : null;
   const dailyTarget = await getDailyTarget();
   const dailyProgress =
     dailyTarget && dailySales !== null
       ? Math.min(100, Math.round((dailySales / dailyTarget.targetAmount) * 100))
       : 0;
+  const minHoursForBonus = 4;
   const isDailyBonusReached =
-    dailyTarget && dailySales !== null && dailySales >= dailyTarget.targetAmount;
+    dailyTarget &&
+    dailySales !== null &&
+    dailySales >= dailyTarget.targetAmount &&
+    (dailyHours ?? 0) >= minHoursForBonus;
+
+  const today = new Date();
+  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+  const existingTasks = selectedEmployee
+    ? await prisma.dailyTask.findMany({
+        where: {
+          employeeId: selectedEmployee.id,
+          date: {
+            gte: dayStart,
+            lt: dayEnd
+          }
+        },
+        orderBy: { id: "asc" }
+      })
+    : [];
+
+  if (selectedEmployee && existingTasks.length === 0) {
+    const defaultTasks = [
+      "פתיחת קופה",
+      "סידור מדף ראשי",
+      "בדיקת מלאי חם",
+      "עדכון מבצעים יומיים"
+    ];
+    await prisma.dailyTask.createMany({
+      data: defaultTasks.map((label) => ({
+        employeeId: selectedEmployee.id,
+        date: dayStart,
+        label
+      }))
+    });
+  }
+
+  const dailyTasks = selectedEmployee
+    ? await prisma.dailyTask.findMany({
+        where: {
+          employeeId: selectedEmployee.id,
+          date: {
+            gte: dayStart,
+            lt: dayEnd
+          }
+        },
+        orderBy: { id: "asc" }
+      })
+    : [];
+
+  const openEntry = selectedEmployee
+    ? await prisma.timeEntry.findFirst({
+        where: {
+          employeeId: selectedEmployee.id,
+          clockOut: null
+        }
+      })
+    : null;
 
   return (
     <>
@@ -277,7 +345,10 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                   <p className="mt-2 text-sm text-slate-500">
                     {isDailyBonusReached
                       ? `זכאות לבונוס: ₪${dailyTarget.bonusReward}`
-                      : "המשך מכירות כדי להגיע לבונוס"}
+                      : "המשך מכירות ושעות עבודה כדי להגיע לבונוס"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    נדרש לפחות {minHoursForBonus} שעות כדי לקבל בונוס יומי.
                   </p>
                 </>
               ) : (
@@ -285,6 +356,43 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                   אין יעד יומי מוגדר להיום.
                 </p>
               )}
+            </div>
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-700">נוכחות</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                שעות עבודה היום: {dailyHours?.toFixed(2) ?? "0.00"}
+              </p>
+              {selectedEmployee && (
+                <div className="mt-3 flex gap-2">
+                  <form action={clockIn}>
+                    <input type="hidden" name="employeeId" value={selectedEmployee.id} />
+                    <Button type="submit" disabled={Boolean(openEntry)}>
+                      כניסה למשמרת
+                    </Button>
+                  </form>
+                  <form action={clockOut}>
+                    <input type="hidden" name="employeeId" value={selectedEmployee.id} />
+                    <Button type="submit" variant="outline" disabled={!openEntry}>
+                      יציאה ממשמרת
+                    </Button>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-700">משימות יומיות</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                הרשימה מתאפסת בכל בוקר.
+              </p>
+              <div className="mt-4">
+                {selectedEmployee ? (
+                  <DailyTasks tasks={dailyTasks} employeeId={selectedEmployee.id} />
+                ) : (
+                  <p className="text-sm text-slate-500">בחר עובד להצגת משימות.</p>
+                )}
+              </div>
             </div>
           </Card>
         </TabsContent>

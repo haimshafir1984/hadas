@@ -8,21 +8,31 @@ import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { addStock, createProduct, recordSale } from "./actions";
 import { InventoryOcrUpload } from "@/components/inventory-ocr";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 
 export const dynamic = "force-dynamic";
 
 type InventoryPageProps = {
-  searchParams?: { department?: string; model?: string };
+  searchParams?: { department?: string; model?: string; barcode?: string };
 };
 
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
-  const [products, suppliers] = await Promise.all([
+  const [products, suppliers, recentOut] = await Promise.all([
     prisma.product.findMany({
       orderBy: { name: "asc" },
       include: { supplier: true }
     }),
     prisma.supplier.findMany({
       orderBy: { name: "asc" }
+    }),
+    prisma.inventoryTransaction.findMany({
+      where: {
+        type: "OUT",
+        createdAt: {
+          gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+        }
+      },
+      select: { productId: true }
     })
   ]);
 
@@ -35,6 +45,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
   const selectedDepartment = searchParams?.department ?? "all";
   const selectedModel = searchParams?.model ?? "all";
+  const selectedBarcode = searchParams?.barcode?.trim() ?? "";
 
   const filteredProducts = products.filter((product) => {
     if (selectedDepartment !== "all" && product.department !== selectedDepartment) {
@@ -43,8 +54,14 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
     if (selectedModel !== "all" && product.model !== selectedModel) {
       return false;
     }
+    if (selectedBarcode && product.barcode !== selectedBarcode) {
+      return false;
+    }
     return true;
   });
+
+  const recentOutSet = new Set(recentOut.map((entry) => entry.productId));
+  const deadStock = products.filter((product) => !recentOutSet.has(product.id));
 
   return (
     <>
@@ -76,6 +93,10 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                 <div className="space-y-2">
                   <Label htmlFor="sku">מק״ט</Label>
                   <Input id="sku" name="sku" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="barcode">ברקוד</Label>
+                  <Input id="barcode" name="barcode" />
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="space-y-2">
@@ -217,7 +238,11 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             <h2 className="text-lg font-semibold text-slate-900">
               תצוגת מלאי
             </h2>
-            <form method="get" className="mt-4 flex flex-col gap-3 md:flex-row md:items-end">
+            <form
+              id="inventoryFilters"
+              method="get"
+              className="mt-4 flex flex-col gap-3 md:flex-row md:items-end"
+            >
               <div className="space-y-2">
                 <Label htmlFor="departmentFilter">מחלקה</Label>
                 <select
@@ -250,14 +275,27 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                   ))}
                 </select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="barcodeFilter">ברקוד</Label>
+                <Input
+                  id="barcodeFilter"
+                  name="barcode"
+                  defaultValue={selectedBarcode}
+                  placeholder="סרוק או הזן ברקוד"
+                />
+              </div>
               <Button type="submit">סינון</Button>
             </form>
+            <div className="mt-4">
+              <BarcodeScanner inputId="barcodeFilter" formId="inventoryFilters" />
+            </div>
             <div className="mt-4 overflow-x-auto">
               <Table>
                 <thead className="border-b border-slate-200 text-left text-slate-500">
                   <tr>
                     <th className="py-2 pr-4">מוצר</th>
                     <th className="py-2 pr-4">מק״ט</th>
+                    <th className="py-2 pr-4">ברקוד</th>
                     <th className="py-2 pr-4">מחלקה</th>
                     <th className="py-2 pr-4">דגם</th>
                     <th className="py-2 pr-4">מידה</th>
@@ -284,6 +322,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                           {product.name}
                         </td>
                         <td className="py-2 pr-4">{product.sku}</td>
+                        <td className="py-2 pr-4">{product.barcode ?? "-"}</td>
                         <td className="py-2 pr-4">{product.department}</td>
                         <td className="py-2 pr-4">{product.model}</td>
                         <td className="py-2 pr-4">{product.size}</td>
@@ -309,6 +348,29 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                   })}
                 </tbody>
               </Table>
+            </div>
+          </Card>
+
+          <Card className="mx-auto max-w-6xl">
+            <h2 className="text-lg font-semibold text-slate-900">
+              מלאי מת (60 ימים ללא מכירה)
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              פריטים שלא נמכרו ב־60 הימים האחרונים.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {deadStock.length === 0 && (
+                <p className="text-sm text-slate-500">אין מלאי מת כרגע.</p>
+              )}
+              {deadStock.map((product) => (
+                <div
+                  key={`dead-${product.id}`}
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"
+                >
+                  <span className="font-semibold text-slate-900">{product.name}</span>{" "}
+                  · {product.sku}
+                </div>
+              ))}
             </div>
           </Card>
         </TabsContent>

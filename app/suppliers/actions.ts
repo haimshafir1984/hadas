@@ -50,6 +50,7 @@ export async function logSupplierInvoice(formData: FormData) {
   const invoiceDate = toDate(formData.get("invoiceDate"));
   const totalAmount = toNumber(formData.get("totalAmount"));
   const numberOfPayments = Math.floor(toNumber(formData.get("numberOfPayments")));
+  const itemsRaw = String(formData.get("items") || "[]");
 
   if (!Number.isFinite(supplierId) || supplierId <= 0) {
     throw new Error("Invalid supplier");
@@ -73,14 +74,51 @@ export async function logSupplierInvoice(formData: FormData) {
     invoiceImage = `data:${file.type};base64,${base64}`;
   }
 
-  await prisma.supplierInvoice.create({
-    data: {
-      supplierId,
-      invoiceDate,
-      totalAmount,
-      numberOfPayments,
-      paymentDates: JSON.stringify(paymentDates),
-      invoiceImage
+  const items = (() => {
+    try {
+      return JSON.parse(itemsRaw) as Array<{
+        productId?: number | null;
+        productName?: string;
+        quantity?: number;
+        unitCost?: number;
+      }>;
+    } catch {
+      return [];
+    }
+  })();
+
+  const normalizedItems = items
+    .map((item) => ({
+      productId:
+        item.productId && Number(item.productId) > 0 ? Number(item.productId) : null,
+      productName: String(item.productName || "").trim(),
+      quantity: Math.max(1, Math.floor(Number(item.quantity || 0))),
+      unitCost: Number(item.unitCost || 0)
+    }))
+    .filter((item) => item.productName && item.unitCost > 0);
+
+  await prisma.$transaction(async (tx) => {
+    const invoice = await tx.supplierInvoice.create({
+      data: {
+        supplierId,
+        invoiceDate,
+        totalAmount,
+        numberOfPayments,
+        paymentDates: JSON.stringify(paymentDates),
+        invoiceImage
+      }
+    });
+
+    for (const item of normalizedItems) {
+      await tx.supplierInvoiceItem.create({
+        data: {
+          supplierInvoiceId: invoice.id,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitCost: item.unitCost
+        }
+      });
     }
   });
 
