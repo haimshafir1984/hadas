@@ -6,14 +6,18 @@ import { isLowStock } from "@/lib/inventory";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  let products = [];
-  let invoices = [];
-  let recentOut = [];
+  let products: Array<{ id: number; maxStock: number; currentStock: number }> = [];
+  let invoices: Array<{ paymentDates: string }> = [];
+  let recentOut: Array<{ productId: number }> = [];
 
   try {
     [products, invoices, recentOut] = await Promise.all([
-      prisma.product.findMany(),
-      prisma.supplierInvoice.findMany(),
+      prisma.product.findMany({
+        select: { id: true, maxStock: true, currentStock: true }
+      }),
+      prisma.supplierInvoice.findMany({
+        select: { paymentDates: true }
+      }),
       prisma.inventoryTransaction.findMany({
         where: {
           type: "OUT",
