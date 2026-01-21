@@ -16,6 +16,8 @@ model Employee {
 
   sales        Sale[]
   shifts       Shift[]
+  timeEntries  TimeEntry[]
+  dailyTasks   DailyTask[]
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
