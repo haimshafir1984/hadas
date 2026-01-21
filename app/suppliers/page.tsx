@@ -94,9 +94,12 @@ export default async function SuppliersPage() {
                 </thead>
                 <tbody>
                   {invoices.map((invoice) => {
-                    const dates = Array.isArray(invoice.paymentDates)
-                      ? (invoice.paymentDates as string[])
-                      : [];
+                    let dates: string[] = [];
+                    try {
+                      dates = JSON.parse(invoice.paymentDates || "[]") as string[];
+                    } catch {
+                      dates = [];
+                    }
                     const paymentAmount =
                       invoice.numberOfPayments > 0
                         ? invoice.totalAmount / invoice.numberOfPayments

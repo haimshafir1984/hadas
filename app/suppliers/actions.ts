@@ -79,7 +79,7 @@ export async function logSupplierInvoice(formData: FormData) {
       invoiceDate,
       totalAmount,
       numberOfPayments,
-      paymentDates,
+      paymentDates: JSON.stringify(paymentDates),
       invoiceImage
     }
   });

@@ -99,7 +99,7 @@ model SupplierInvoice {
   invoiceDate     DateTime
   totalAmount     Float
   numberOfPayments Int
-  paymentDates    Json
+  paymentDates    String
   invoiceImage    String?
   createdAt       DateTime @default(now())
 }
