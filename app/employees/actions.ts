@@ -14,6 +14,10 @@ function toDate(value: FormDataEntryValue | null) {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+function normalizeDateToDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 export async function createEmployee(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const employeeCode = String(formData.get("employeeCode") || "").trim();
@@ -80,3 +84,30 @@ export async function logShift(formData: FormData) {
   revalidatePath("/employees");
 }
 
+export async function setDailyTarget(formData: FormData) {
+  const date = toDate(formData.get("date"));
+  const targetAmount = toNumber(formData.get("targetAmount"));
+  const bonusReward = toNumber(formData.get("bonusReward"));
+
+  if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
+    throw new Error("Invalid target input");
+  }
+
+  const normalizedDate = normalizeDateToDay(date);
+  const bonus = Number.isFinite(bonusReward) && bonusReward >= 0 ? bonusReward : 0;
+
+  await prisma.dailyTarget.upsert({
+    where: { date: normalizedDate },
+    create: {
+      date: normalizedDate,
+      targetAmount,
+      bonusReward: bonus
+    },
+    update: {
+      targetAmount,
+      bonusReward: bonus
+    }
+  });
+
+  revalidatePath("/employees");
+}

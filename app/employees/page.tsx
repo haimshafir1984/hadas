@@ -4,9 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
-import { getEmployeeMonthlyStats } from "@/lib/employee";
-import { createEmployee, logSale, logShift } from "./actions";
-import { Activity, TrendingUp, Wallet } from "lucide-react";
+import { getDailyTarget, getEmployeeDailySales, getEmployeeMonthlyStats } from "@/lib/employee";
+import { createEmployee, logSale, logShift, setDailyTarget } from "./actions";
+import { Activity, TrendingUp, Trophy, Wallet } from "lucide-react";
 
 type EmployeesPageProps = {
   searchParams?: { employeeId?: string };
@@ -24,6 +24,16 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   const stats = selectedEmployee
     ? await getEmployeeMonthlyStats(selectedEmployee.id)
     : null;
+  const dailySales = selectedEmployee
+    ? await getEmployeeDailySales(selectedEmployee.id)
+    : null;
+  const dailyTarget = await getDailyTarget();
+  const dailyProgress =
+    dailyTarget && dailySales !== null
+      ? Math.min(100, Math.round((dailySales / dailyTarget.targetAmount) * 100))
+      : 0;
+  const isDailyBonusReached =
+    dailyTarget && dailySales !== null && dailySales >= dailyTarget.targetAmount;
 
   return (
     <>
@@ -41,7 +51,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
         </TabsList>
 
         <TabsContent value="admin">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="mx-auto max-w-5xl space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <h2 className="text-lg font-semibold text-slate-900">
                 הוספה חדשה
@@ -149,11 +160,43 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                 </form>
               </div>
             </Card>
+            </div>
+
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900">
+                יעד יומי ובונוס
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                הגדירו יעד יומי לכלל החנות ובונוס קבוע לעמידה ביעד.
+              </p>
+              <form action={setDailyTarget} className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="targetDate">תאריך</Label>
+                  <Input
+                    id="targetDate"
+                    name="date"
+                    type="date"
+                    defaultValue={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetAmount">יעד מכירות יומי</Label>
+                  <Input id="targetAmount" name="targetAmount" type="number" min="1" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bonusReward">בונוס קבוע</Label>
+                  <Input id="bonusReward" name="bonusReward" type="number" min="0" />
+                </div>
+                <div className="md:col-span-3">
+                  <Button type="submit">שמירת יעד יומי</Button>
+                </div>
+              </form>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="view">
-          <Card>
+          <Card className="mx-auto max-w-5xl">
             <h2 className="text-lg font-semibold text-slate-900">
               דשבורד עובד
             </h2>
@@ -212,6 +255,37 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                 אין עובדים להצגה. הוסף עובד במקטע הניהול.
               </p>
             )}
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500">
+                <p className="text-xs uppercase">התקדמות ליעד היומי</p>
+                <Trophy size={16} />
+              </div>
+              {dailyTarget ? (
+                <>
+                  <p className="mt-3 text-lg font-semibold text-slate-900">
+                    ₪{dailySales?.toFixed(0) ?? 0} / ₪{dailyTarget.targetAmount.toFixed(0)}
+                  </p>
+                  <div className="mt-3 h-2.5 w-full rounded-full bg-slate-200">
+                    <div
+                      className={`h-2.5 rounded-full ${
+                        isDailyBonusReached ? "bg-emerald-500" : "bg-indigo-500"
+                      }`}
+                      style={{ width: `${dailyProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {isDailyBonusReached
+                      ? `זכאות לבונוס: ₪${dailyTarget.bonusReward}`
+                      : "המשך מכירות כדי להגיע לבונוס"}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-sm text-slate-500">
+                  אין יעד יומי מוגדר להיום.
+                </p>
+              )}
+            </div>
           </Card>
         </TabsContent>
       </Tabs>

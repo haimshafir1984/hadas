@@ -11,12 +11,19 @@ function toNumber(value: FormDataEntryValue | null) {
 export async function createProduct(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const sku = String(formData.get("sku") || "").trim();
+  const departmentInput = String(formData.get("department") || "").trim();
+  const modelInput = String(formData.get("model") || "").trim();
+  const sizeInput = String(formData.get("size") || "").trim();
   const maxStock = toNumber(formData.get("maxStock"));
   const initialStock = toNumber(formData.get("initialStock"));
 
   if (!name || !sku || !Number.isFinite(maxStock) || maxStock <= 0) {
     throw new Error("Invalid product input");
   }
+
+  const department = departmentInput || "לא משויך";
+  const model = modelInput || "לא משויך";
+  const size = sizeInput || "כללי";
 
   const initial = Number.isFinite(initialStock) && initialStock > 0 ? initialStock : 0;
 
@@ -25,6 +32,9 @@ export async function createProduct(formData: FormData) {
       data: {
         name,
         sku,
+        department,
+        model,
+        size,
         maxStock,
         currentStock: initial
       }

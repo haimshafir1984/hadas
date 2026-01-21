@@ -7,12 +7,22 @@ import { Table } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
 import { createCustomer } from "./actions";
 import { CustomerBroadcast } from "@/components/customer-broadcast";
+import { BirthdayGreetingButton } from "@/components/birthday-greeting";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
   const customers = await prisma.customer.findMany({
     orderBy: { joinedAt: "desc" }
+  });
+
+  const today = new Date();
+  const birthdayCustomers = customers.filter((customer) => {
+    if (!customer.birthDate) return false;
+    return (
+      customer.birthDate.getDate() === today.getDate() &&
+      customer.birthDate.getMonth() === today.getMonth()
+    );
   });
 
   return (
@@ -31,7 +41,7 @@ export default async function CustomersPage() {
         </TabsList>
 
         <TabsContent value="admin">
-          <Card>
+          <Card className="mx-auto max-w-3xl">
             <h2 className="text-lg font-semibold text-slate-900">
               הוספה חדשה
             </h2>
@@ -48,13 +58,41 @@ export default async function CustomersPage() {
                 <Label htmlFor="email">אימייל</Label>
                 <Input id="email" name="email" type="email" required />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">תאריך לידה</Label>
+                <Input id="birthDate" name="birthDate" type="date" />
+              </div>
               <Button type="submit">שמירת לקוח</Button>
             </form>
           </Card>
         </TabsContent>
 
         <TabsContent value="view">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-3">
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900">
+                סטטוס ימי הולדת
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                לקוחות שחוגגים יום הולדת היום.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                {birthdayCustomers.length === 0 && (
+                  <li>אין היום ימי הולדת.</li>
+                )}
+                {birthdayCustomers.map((customer) => (
+                  <li key={customer.id} className="flex justify-between">
+                    <span className="text-slate-900">{customer.name}</span>
+                    <span className="text-slate-500">{customer.phone}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4">
+                <BirthdayGreetingButton
+                  names={birthdayCustomers.map((customer) => customer.name)}
+                />
+              </div>
+            </Card>
             <Card>
               <h2 className="text-lg font-semibold text-slate-900">
                 שידור ללקוחות

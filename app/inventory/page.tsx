@@ -7,12 +7,37 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { addStock, createProduct, recordSale } from "./actions";
+import { InventoryOcrUpload } from "@/components/inventory-ocr";
 
 export const dynamic = "force-dynamic";
 
-export default async function InventoryPage() {
+type InventoryPageProps = {
+  searchParams?: { department?: string; model?: string };
+};
+
+export default async function InventoryPage({ searchParams }: InventoryPageProps) {
   const products = await prisma.product.findMany({
     orderBy: { name: "asc" }
+  });
+
+  const departments = Array.from(
+    new Set(products.map((product) => product.department).filter(Boolean))
+  );
+  const models = Array.from(
+    new Set(products.map((product) => product.model).filter(Boolean))
+  );
+
+  const selectedDepartment = searchParams?.department ?? "all";
+  const selectedModel = searchParams?.model ?? "all";
+
+  const filteredProducts = products.filter((product) => {
+    if (selectedDepartment !== "all" && product.department !== selectedDepartment) {
+      return false;
+    }
+    if (selectedModel !== "all" && product.model !== selectedModel) {
+      return false;
+    }
+    return true;
   });
 
   return (
@@ -31,7 +56,8 @@ export default async function InventoryPage() {
         </TabsList>
 
         <TabsContent value="admin">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="mx-auto max-w-5xl space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <h2 className="text-lg font-semibold text-slate-900">
                 הוספה חדשה
@@ -44,6 +70,20 @@ export default async function InventoryPage() {
                 <div className="space-y-2">
                   <Label htmlFor="sku">מק״ט</Label>
                   <Input id="sku" name="sku" required />
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="department">מחלקה</Label>
+                    <Input id="department" name="department" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="model">דגם</Label>
+                    <Input id="model" name="model" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="size">מידה</Label>
+                    <Input id="size" name="size" />
+                  </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="space-y-2">
@@ -135,27 +175,78 @@ export default async function InventoryPage() {
                 </form>
               </div>
             </Card>
+            </div>
+
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900">
+                העלאת חשבונית
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                העלה תמונת חשבונית לצורך חילוץ פריטים אוטומטי.
+              </p>
+              <div className="mt-4">
+                <InventoryOcrUpload />
+              </div>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="view">
-          <Card>
+          <Card className="mx-auto max-w-6xl">
             <h2 className="text-lg font-semibold text-slate-900">
               תצוגת מלאי
             </h2>
+            <form method="get" className="mt-4 flex flex-col gap-3 md:flex-row md:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="departmentFilter">מחלקה</Label>
+                <select
+                  id="departmentFilter"
+                  name="department"
+                  defaultValue={selectedDepartment}
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm"
+                >
+                  <option value="all">הכל</option>
+                  {departments.map((department) => (
+                    <option key={department} value={department}>
+                      {department}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="modelFilter">דגם</Label>
+                <select
+                  id="modelFilter"
+                  name="model"
+                  defaultValue={selectedModel}
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm"
+                >
+                  <option value="all">הכל</option>
+                  {models.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button type="submit">סינון</Button>
+            </form>
             <div className="mt-4 overflow-x-auto">
               <Table>
                 <thead className="border-b border-slate-200 text-left text-slate-500">
                   <tr>
                     <th className="py-2 pr-4">מוצר</th>
                     <th className="py-2 pr-4">מק״ט</th>
+                    <th className="py-2 pr-4">מחלקה</th>
+                    <th className="py-2 pr-4">דגם</th>
+                    <th className="py-2 pr-4">מידה</th>
                     <th className="py-2 pr-4">מלאי נוכחי</th>
                     <th className="py-2 pr-4">מדד מלאי</th>
                     <th className="py-2 pr-4">התראת מלאי נמוך</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => {
+                  {filteredProducts.map((product) => {
                     const lowStock = isLowStock(product);
                     const threshold = lowStockThreshold(product.maxStock);
                     const ratio = Math.min(
@@ -171,6 +262,9 @@ export default async function InventoryPage() {
                           {product.name}
                         </td>
                         <td className="py-2 pr-4">{product.sku}</td>
+                        <td className="py-2 pr-4">{product.department}</td>
+                        <td className="py-2 pr-4">{product.model}</td>
+                        <td className="py-2 pr-4">{product.size}</td>
                         <td className="py-2 pr-4">{product.currentStock}</td>
                         <td className="py-2 pr-4">
                           <div className="h-2.5 w-40 rounded-full bg-slate-200">
