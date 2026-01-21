@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { isLowStock } from "@/lib/inventory";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [products, invoices, recentOut] = await Promise.all([
     prisma.product.findMany(),
