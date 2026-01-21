@@ -47,6 +47,8 @@ model Product {
   size        String                  @default("כללי")
   maxStock    Int                     // initial/maximum reference level for 10% logic
   currentStock Int                    @default(0)
+  supplierId  Int?
+  supplier    Supplier?               @relation(fields: [supplierId], references: [id])
 
   transactions InventoryTransaction[]
 
@@ -78,4 +80,26 @@ model DailyTarget {
   targetAmount Float
   bonusReward  Float
   createdAt    DateTime @default(now())
+}
+
+model Supplier {
+  id            Int               @id @default(autoincrement())
+  name          String
+  contactPerson String
+  phone         String
+  products      Product[]
+  invoices      SupplierInvoice[]
+  createdAt     DateTime          @default(now())
+}
+
+model SupplierInvoice {
+  id              Int      @id @default(autoincrement())
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+  supplierId      Int
+  invoiceDate     DateTime
+  totalAmount     Float
+  numberOfPayments Int
+  paymentDates    Json
+  invoiceImage    String?
+  createdAt       DateTime @default(now())
 }

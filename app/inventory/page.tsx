@@ -16,9 +16,15 @@ type InventoryPageProps = {
 };
 
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
-  const products = await prisma.product.findMany({
-    orderBy: { name: "asc" }
-  });
+  const [products, suppliers] = await Promise.all([
+    prisma.product.findMany({
+      orderBy: { name: "asc" },
+      include: { supplier: true }
+    }),
+    prisma.supplier.findMany({
+      orderBy: { name: "asc" }
+    })
+  ]);
 
   const departments = Array.from(
     new Set(products.map((product) => product.department).filter(Boolean))
@@ -84,6 +90,21 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                     <Label htmlFor="size">מידה</Label>
                     <Input id="size" name="size" />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supplierId">בחר ספק</Label>
+                  <select
+                    id="supplierId"
+                    name="supplierId"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm"
+                  >
+                    <option value="">ללא ספק</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="space-y-2">
@@ -240,6 +261,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                     <th className="py-2 pr-4">מחלקה</th>
                     <th className="py-2 pr-4">דגם</th>
                     <th className="py-2 pr-4">מידה</th>
+                    <th className="py-2 pr-4">ספק</th>
                     <th className="py-2 pr-4">מלאי נוכחי</th>
                     <th className="py-2 pr-4">מדד מלאי</th>
                     <th className="py-2 pr-4">התראת מלאי נמוך</th>
@@ -265,6 +287,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                         <td className="py-2 pr-4">{product.department}</td>
                         <td className="py-2 pr-4">{product.model}</td>
                         <td className="py-2 pr-4">{product.size}</td>
+                        <td className="py-2 pr-4">
+                          {product.supplier?.name ?? "לא הוגדר"}
+                        </td>
                         <td className="py-2 pr-4">{product.currentStock}</td>
                         <td className="py-2 pr-4">
                           <div className="h-2.5 w-40 rounded-full bg-slate-200">

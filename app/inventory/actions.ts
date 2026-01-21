@@ -14,6 +14,7 @@ export async function createProduct(formData: FormData) {
   const departmentInput = String(formData.get("department") || "").trim();
   const modelInput = String(formData.get("model") || "").trim();
   const sizeInput = String(formData.get("size") || "").trim();
+  const supplierId = toNumber(formData.get("supplierId"));
   const maxStock = toNumber(formData.get("maxStock"));
   const initialStock = toNumber(formData.get("initialStock"));
 
@@ -27,6 +28,8 @@ export async function createProduct(formData: FormData) {
 
   const initial = Number.isFinite(initialStock) && initialStock > 0 ? initialStock : 0;
 
+  const normalizedSupplierId = Number.isFinite(supplierId) && supplierId > 0 ? supplierId : null;
+
   await prisma.$transaction(async (tx) => {
     const product = await tx.product.create({
       data: {
@@ -35,6 +38,7 @@ export async function createProduct(formData: FormData) {
         department,
         model,
         size,
+        supplierId: normalizedSupplierId,
         maxStock,
         currentStock: initial
       }

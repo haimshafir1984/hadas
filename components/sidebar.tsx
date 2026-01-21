@@ -7,7 +7,8 @@ import {
   Users,
   Settings,
   PackageSearch,
-  LayoutDashboard
+  LayoutDashboard,
+  Truck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ const navItems = [
   { href: "/", label: "לוח בקרה", icon: LayoutDashboard },
   { href: "/employees", label: "ניהול עובדים", icon: Users },
   { href: "/inventory", label: "ניהול מלאי", icon: PackageSearch },
+  { href: "/suppliers", label: "ספקים", icon: Truck },
   { href: "/customers", label: "מועדון לקוחות", icon: Box },
   { href: "/settings", label: "הגדרות", icon: Settings }
 ];
