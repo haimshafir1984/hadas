@@ -8,6 +8,7 @@ export type ExcelItem = {
   name: string;
   sku: string;
   quantity: number;
+  price?: number | null;
   maxStock?: number | null;
   department?: string | null;
   model?: string | null;
@@ -24,11 +25,15 @@ const headerMap: Record<string, keyof ExcelItem> = {
   name: "name",
   "שם": "name",
   "שם מוצר": "name",
+  "דגם": "name",
   sku: "sku",
   "מק״ט": "sku",
   "מק\"ט": "sku",
   quantity: "quantity",
   "כמות": "quantity",
+  price: "price",
+  "מחיר": "price",
+  "מחיר יחידה": "price",
   maxstock: "maxStock",
   "מלאי מקסימלי": "maxStock",
   department: "department",
@@ -81,11 +86,13 @@ export async function extractExcelItems(formData: FormData): Promise<ExcelResult
 
         const quantity = toNumber(normalized.quantity);
         const maxStock = toNumber(normalized.maxStock);
+        const price = toNumber(normalized.price);
 
         return {
           name: String(normalized.name || "").trim(),
           sku: String(normalized.sku || "").trim(),
           quantity: Number.isFinite(quantity) ? Number(quantity) : 0,
+          price: Number.isFinite(price) ? Number(price) : null,
           maxStock: Number.isFinite(maxStock) ? Number(maxStock) : null,
           department: normalized.department ? String(normalized.department).trim() : null,
           model: normalized.model ? String(normalized.model).trim() : null,
