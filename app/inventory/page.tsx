@@ -11,6 +11,7 @@ import { InventoryOcrUpload } from "@/components/inventory-ocr";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { SaleBarcodeHelper } from "@/components/sale-barcode-helper";
 import { InventoryExcelUpload } from "@/components/inventory-excel";
+import { Minus, Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   return (
     <>
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-900">ניהול מלאי</h1>
+        <h1 className="text-3xl font-bold text-slate-900">ניהול מלאי</h1>
         <p className="text-slate-500">
           ניהול מלאי עם התראות חוסרים בזמן אמת.
         </p>
@@ -90,7 +91,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           <div className="mx-auto max-w-5xl space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
             <Card>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 הוספה חדשה
               </h2>
               <form action={createProduct} className="mt-4 space-y-3">
@@ -162,12 +163,12 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             </Card>
 
             <Card>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 תנועות מלאי
               </h2>
               <div className="mt-4 grid gap-4">
                 <form action={addStock} className="space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-600">
+                  <h3 className="text-sm font-bold text-slate-600">
                     הוספת מלאי (כניסה)
                   </h3>
                   <div className="space-y-2">
@@ -196,7 +197,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                 </form>
 
                 <form action={recordSale} className="space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-600">
+                  <h3 className="text-sm font-bold text-slate-600">
                     רישום מכירה (יציאה)
                   </h3>
                   <div className="space-y-2">
@@ -241,7 +242,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             </div>
 
             <Card>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 העלאת חשבונית
               </h2>
               <p className="mt-2 text-sm text-slate-500">
@@ -253,7 +254,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             </Card>
 
             <Card>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 העלאת אקסל למלאי
               </h2>
               <p className="mt-2 text-sm text-slate-500">
@@ -268,59 +269,61 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
         <TabsContent value="view">
           <Card className="mx-auto max-w-6xl">
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-bold text-slate-900">
               תצוגת מלאי
             </h2>
-            <form
-              id="inventoryFilters"
-              method="get"
-              className="mt-4 flex flex-col gap-3 md:flex-row md:items-end"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="departmentFilter">מחלקה</Label>
-                <select
-                  id="departmentFilter"
-                  name="department"
-                  defaultValue={selectedDepartment}
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm"
-                >
-                  <option value="all">הכל</option>
-                  {departments.map((department) => (
-                    <option key={department} value={department}>
-                      {department}
-                    </option>
-                  ))}
-                </select>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <form
+                id="inventoryFilters"
+                method="get"
+                className="flex flex-col gap-3 md:flex-row md:items-end"
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="departmentFilter">מחלקה</Label>
+                  <select
+                    id="departmentFilter"
+                    name="department"
+                    defaultValue={selectedDepartment}
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm"
+                  >
+                    <option value="all">הכל</option>
+                    {departments.map((department) => (
+                      <option key={department} value={department}>
+                        {department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="modelFilter">דגם</Label>
+                  <select
+                    id="modelFilter"
+                    name="model"
+                    defaultValue={selectedModel}
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm"
+                  >
+                    <option value="all">הכל</option>
+                    {models.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="barcodeFilter">ברקוד</Label>
+                  <Input
+                    id="barcodeFilter"
+                    name="barcode"
+                    defaultValue={selectedBarcode}
+                    placeholder="סרוק או הזן ברקוד"
+                  />
+                </div>
+                <Button type="submit">סינון</Button>
+              </form>
+              <div className="mt-3">
+                <BarcodeScanner inputId="barcodeFilter" formId="inventoryFilters" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="modelFilter">דגם</Label>
-                <select
-                  id="modelFilter"
-                  name="model"
-                  defaultValue={selectedModel}
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm"
-                >
-                  <option value="all">הכל</option>
-                  {models.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="barcodeFilter">ברקוד</Label>
-                <Input
-                  id="barcodeFilter"
-                  name="barcode"
-                  defaultValue={selectedBarcode}
-                  placeholder="סרוק או הזן ברקוד"
-                />
-              </div>
-              <Button type="submit">סינון</Button>
-            </form>
-            <div className="mt-4">
-              <BarcodeScanner inputId="barcodeFilter" formId="inventoryFilters" />
             </div>
             <div className="mt-4 overflow-x-auto">
               <Table>
@@ -398,15 +401,15 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                             <form action={addStock}>
                               <input type="hidden" name="productId" value={product.id} />
                               <input type="hidden" name="quantity" value="1" />
-                              <Button type="submit" variant="outline">
-                                +1
+                              <Button type="submit" variant="outline" className="min-w-[40px] px-0">
+                                <Plus size={16} />
                               </Button>
                             </form>
                             <form action={recordSale}>
                               <input type="hidden" name="productId" value={product.id} />
                               <input type="hidden" name="quantity" value="1" />
-                              <Button type="submit" variant="outline">
-                                -1
+                              <Button type="submit" variant="outline" className="min-w-[40px] px-0">
+                                <Minus size={16} />
                               </Button>
                             </form>
                           </div>
@@ -420,7 +423,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           </Card>
 
           <Card className="mx-auto max-w-6xl">
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-bold text-slate-900">
               מלאי מת (60 ימים ללא מכירה)
             </h2>
             <p className="mt-2 text-sm text-slate-500">

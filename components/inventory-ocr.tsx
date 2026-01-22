@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table } from "@/components/ui/table";
 import { extractInvoiceItems, applyInvoiceItems, InvoiceItem } from "@/app/inventory/ocr-actions";
 
 export function InventoryOcrUpload() {
@@ -38,6 +40,17 @@ export function InventoryOcrUpload() {
     });
   };
 
+  const handleCancel = () => {
+    setItems([]);
+  };
+
+  const updateQuantity = (index: number, value: string) => {
+    const qty = Math.max(1, Number(value || 0));
+    setItems((current) =>
+      current.map((item, i) => (i === index ? { ...item, quantity: qty } : item))
+    );
+  };
+
   return (
     <div className="space-y-4">
       <form onSubmit={handleUpload} className="space-y-3">
@@ -57,23 +70,46 @@ export function InventoryOcrUpload() {
       </form>
 
       {items.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-700">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-700">
             אימות פריטים לפני הוספה
           </h3>
-          <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            {items.map((item, index) => (
-              <li key={`${item.name}-${index}`} className="flex justify-between">
-                <span>{item.name}</span>
-                <span>
-                  {item.quantity} יח׳{item.price ? ` · ₪${item.price}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4">
+          <div className="mt-3 overflow-x-auto">
+            <Table>
+              <thead className="border-b border-slate-200 text-left text-slate-500">
+                <tr>
+                  <th className="py-2 pr-4">מוצר</th>
+                  <th className="py-2 pr-4">כמות</th>
+                  <th className="py-2 pr-4">מחיר</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={`${item.name}-${index}`} className="border-b border-slate-100 text-slate-700">
+                    <td className="py-2 pr-4 font-medium text-slate-900">{item.name}</td>
+                    <td className="py-2 pr-4">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(event) => updateQuantity(index, event.target.value)}
+                        className="h-9 w-24 px-3"
+                      />
+                    </td>
+                    <td className="py-2 pr-4">
+                      {item.price ? `₪${item.price}` : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+          <div className="mt-4 flex gap-2">
             <Button type="button" onClick={handleConfirm} disabled={isPending}>
               אשר והוסף למלאי
+            </Button>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isPending}>
+              ביטול
             </Button>
           </div>
         </div>
