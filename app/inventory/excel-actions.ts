@@ -39,7 +39,6 @@ const headerMap: Record<string, keyof ExcelItem> = {
   department: "department",
   "מחלקה": "department",
   model: "model",
-  "דגם": "model",
   size: "size",
   "מידה": "size",
   barcode: "barcode",
