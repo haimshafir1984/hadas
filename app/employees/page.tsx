@@ -364,19 +364,18 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                 שעות עבודה היום: {dailyHours?.toFixed(2) ?? "0.00"}
               </p>
               {selectedEmployee && (
-                <div className="mt-3 flex gap-2">
-                  <form action={clockIn}>
+                <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
+                  <form action={openEntry ? clockOut : clockIn}>
                     <input type="hidden" name="employeeId" value={selectedEmployee.id} />
-                    <Button type="submit" disabled={Boolean(openEntry)}>
-                      כניסה למשמרת
+                    <Button type="submit" variant={openEntry ? "outline" : "default"}>
+                      {openEntry ? "סיום משמרת" : "התחלת משמרת"}
                     </Button>
                   </form>
-                  <form action={clockOut}>
-                    <input type="hidden" name="employeeId" value={selectedEmployee.id} />
-                    <Button type="submit" variant="outline" disabled={!openEntry}>
-                      יציאה ממשמרת
-                    </Button>
-                  </form>
+                  {dailyTarget && (
+                    <p className="text-xs text-slate-500">
+                      חסרות {Math.max(0, minHoursForBonus - (dailyHours ?? 0)).toFixed(2)} שעות לבונוס.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

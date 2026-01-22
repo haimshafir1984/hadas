@@ -23,12 +23,12 @@ export default async function CustomersPage() {
       : null;
 
     if (customer.totalSpend >= 2000 && (daysSinceVisit === null || daysSinceVisit <= 60)) {
-      return "VIP";
+      return { label: "VIP", className: "bg-amber-100 text-amber-700" };
     }
     if (customer.totalSpend >= 500 && (daysSinceVisit === null || daysSinceVisit <= 90)) {
-      return "Active";
+      return { label: "Active", className: "bg-emerald-100 text-emerald-700" };
     }
-    return "Inactive";
+    return { label: "Inactive", className: "bg-slate-100 text-slate-600" };
   };
   const today = new Date();
   const birthdayCustomers = customers.filter((customer) => {
@@ -144,14 +144,23 @@ export default async function CustomersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {customers.map((customer) => (
-                      <tr key={customer.id} className="border-b border-slate-100 text-slate-700">
-                        <td className="py-2 pr-4 font-medium text-slate-900">{customer.name}</td>
-                        <td className="py-2 pr-4">{customer.phone}</td>
-                        <td className="py-2 pr-4">{customer.email}</td>
-                        <td className="py-2 pr-4">{getTier(customer)}</td>
-                      </tr>
-                    ))}
+                    {customers.map((customer) => {
+                      const tier = getTier(customer);
+                      return (
+                        <tr key={customer.id} className="border-b border-slate-100 text-slate-700">
+                          <td className="py-2 pr-4 font-medium text-slate-900">{customer.name}</td>
+                          <td className="py-2 pr-4">{customer.phone}</td>
+                          <td className="py-2 pr-4">{customer.email}</td>
+                          <td className="py-2 pr-4">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-medium ${tier.className}`}
+                            >
+                              {tier.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
                 {customers.length === 0 && (

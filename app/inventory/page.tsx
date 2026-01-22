@@ -9,6 +9,7 @@ import { Table } from "@/components/ui/table";
 import { addStock, createProduct, recordSale } from "./actions";
 import { InventoryOcrUpload } from "@/components/inventory-ocr";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { SaleBarcodeHelper } from "@/components/sale-barcode-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,12 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
       return false;
     }
     return true;
+  });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const ratioA = a.maxStock ? a.currentStock / a.maxStock : 0;
+    const ratioB = b.maxStock ? b.currentStock / b.maxStock : 0;
+    return ratioA - ratioB;
   });
 
   const recentOutSet = new Set(recentOut.map((entry) => entry.productId));
@@ -192,6 +199,19 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                     רישום מכירה (יציאה)
                   </h3>
                   <div className="space-y-2">
+                    <Label>סריקת ברקוד למכירה</Label>
+                    <SaleBarcodeHelper
+                      products={products.map((product) => ({
+                        id: product.id,
+                        name: product.name,
+                        barcode: product.barcode
+                      }))}
+                      productSelectId="saleProduct"
+                      quantityInputId="saleQty"
+                      barcodeInputId="saleBarcode"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="saleProduct">מוצר</Label>
                     <select
                       id="saleProduct"
@@ -303,20 +323,29 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                     <th className="py-2 pr-4">מלאי נוכחי</th>
                     <th className="py-2 pr-4">מדד מלאי</th>
                     <th className="py-2 pr-4">התראת מלאי נמוך</th>
+                    <th className="py-2 pr-4">פעולות מהירות</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((product) => {
+                  {sortedProducts.map((product) => {
                     const lowStock = isLowStock(product);
                     const threshold = lowStockThreshold(product.maxStock);
                     const ratio = Math.min(
                       100,
                       Math.round((product.currentStock / product.maxStock) * 100)
                     );
+                    const status =
+                      ratio <= 10 ? "critical" : ratio <= 30 ? "warning" : "ok";
+                    const rowClass =
+                      status === "critical"
+                        ? "bg-red-50 text-red-700"
+                        : status === "warning"
+                          ? "bg-amber-50 text-amber-700"
+                          : "border-b border-slate-100 text-slate-700";
                     return (
                       <tr
                         key={product.id}
-                        className={lowStock ? "bg-red-50 text-red-700" : "border-b border-slate-100 text-slate-700"}
+                        className={rowClass}
                       >
                         <td className="py-2 pr-4 font-medium text-slate-900">
                           {product.name}
@@ -334,14 +363,40 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                           <div className="h-2.5 w-40 rounded-full bg-slate-200">
                             <div
                               className={`h-2.5 rounded-full ${
-                                lowStock ? "bg-red-500" : "bg-emerald-500"
+                                status === "critical"
+                                  ? "bg-red-500"
+                                  : status === "warning"
+                                    ? "bg-amber-500"
+                                    : "bg-emerald-500"
                               }`}
                               style={{ width: `${ratio}%` }}
                             />
                           </div>
                         </td>
                         <td className="py-2 pr-4">
-                          {lowStock ? `התראת מלאי נמוך (סף ${threshold})` : "תקין"}
+                          {status === "critical"
+                            ? `התראת מלאי נמוך (סף ${threshold})`
+                            : status === "warning"
+                              ? "אזהרה"
+                              : "תקין"}
+                        </td>
+                        <td className="py-2 pr-4">
+                          <div className="flex gap-2">
+                            <form action={addStock}>
+                              <input type="hidden" name="productId" value={product.id} />
+                              <input type="hidden" name="quantity" value="1" />
+                              <Button type="submit" variant="outline">
+                                +1
+                              </Button>
+                            </form>
+                            <form action={recordSale}>
+                              <input type="hidden" name="productId" value={product.id} />
+                              <input type="hidden" name="quantity" value="1" />
+                              <Button type="submit" variant="outline">
+                                -1
+                              </Button>
+                            </form>
+                          </div>
                         </td>
                       </tr>
                     );

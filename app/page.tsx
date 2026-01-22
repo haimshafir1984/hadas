@@ -120,6 +120,12 @@ export default async function HomePage() {
             {lowStockCount}
           </p>
           <p className="text-sm text-slate-500">פריטים דורשים טיפול עכשיו.</p>
+          <Link
+            className="mt-3 inline-flex text-sm text-slate-700 underline"
+            href="/inventory"
+          >
+            לטיפול במלאי
+          </Link>
         </Card>
         <Card>
           <h3 className="text-sm font-semibold text-slate-500">תשלומים קרובים</h3>
@@ -127,6 +133,12 @@ export default async function HomePage() {
             {paymentsDueThisWeek}
           </p>
           <p className="text-sm text-slate-500">תשלומים ב־7 הימים הקרובים.</p>
+          <Link
+            className="mt-3 inline-flex text-sm text-slate-700 underline"
+            href="/finance"
+          >
+            לצפייה בתזרים
+          </Link>
         </Card>
         <Card>
           <h3 className="text-sm font-semibold text-slate-500">מלאי מת</h3>
@@ -134,6 +146,12 @@ export default async function HomePage() {
             {deadStockCount}
           </p>
           <p className="text-sm text-slate-500">פריטים ללא מכירה ב־60 יום.</p>
+          <Link
+            className="mt-3 inline-flex text-sm text-slate-700 underline"
+            href="/inventory"
+          >
+            בדיקת מלאי מת
+          </Link>
         </Card>
       </section>
     </>

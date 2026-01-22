@@ -159,8 +159,17 @@ export default async function SuppliersPage() {
                         invoice.numberOfPayments > 0
                           ? invoice.totalAmount / invoice.numberOfPayments
                           : 0;
+                      const hasUpcoming = dates.some((date) => {
+                        const diff = new Date(date).getTime() - Date.now();
+                        return diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000;
+                      });
                       return (
-                        <tr key={invoice.id} className="border-b border-slate-100 text-slate-700">
+                        <tr
+                          key={invoice.id}
+                          className={`border-b text-slate-700 ${
+                            hasUpcoming ? "bg-amber-50" : "border-slate-100"
+                          }`}
+                        >
                           <td className="py-2 pr-4 font-medium text-slate-900">
                             {invoice.supplier.name}
                           </td>
