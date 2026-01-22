@@ -72,7 +72,7 @@ export async function extractExcelItems(formData: FormData): Promise<ExcelResult
 
     const items = rows
       .map((row) => {
-        const normalized: Partial<ExcelItem> = {};
+        const normalized: Partial<Record<keyof ExcelItem, string>> = {};
         Object.entries(row).forEach(([key, value]) => {
           const mapped = headerMap[normalizeHeader(key)];
           if (!mapped) return;
