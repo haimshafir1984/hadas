@@ -10,6 +10,7 @@ import { addStock, createProduct, recordSale } from "./actions";
 import { InventoryOcrUpload } from "@/components/inventory-ocr";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { SaleBarcodeHelper } from "@/components/sale-barcode-helper";
+import { InventoryExcelUpload } from "@/components/inventory-excel";
 
 export const dynamic = "force-dynamic";
 
@@ -248,6 +249,18 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
               </p>
               <div className="mt-4">
                 <InventoryOcrUpload />
+              </div>
+            </Card>
+
+            <Card>
+              <h2 className="text-lg font-semibold text-slate-900">
+                העלאת אקסל למלאי
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                העלה קובץ אקסל עם שם/מק״ט, כמות ושדות נוספים לעדכון מלאי.
+              </p>
+              <div className="mt-4">
+                <InventoryExcelUpload />
               </div>
             </Card>
           </div>
